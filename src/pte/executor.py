@@ -5,6 +5,7 @@ import logging
 import time
 import tracemalloc
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
 from openhands.sdk.agent.agent import _ActionBatch
@@ -65,6 +66,7 @@ def _extract_observation_text(observation: Observation) -> str:
     return str(observation)
 
 
+@dataclass
 class _MinimalState:
     """Stand-in for ConversationState — nothing is ever blocked."""
 
@@ -72,32 +74,27 @@ class _MinimalState:
         return None
 
 
+@dataclass(slots=True)
 class ChainResult:
     """Result of a chain execution: metrics + ordered answers."""
 
-    __slots__ = ("record", "answers", "tool_names", "peak_memory_bytes")
-
-    def __init__(
-        self,
-        record: ChainRecord,
-        answers: list[str],
-        tool_names: list[str],
-        peak_memory_bytes: int = 0,
-    ):
-        self.record = record
-        self.answers = answers
-        self.tool_names = tool_names
-        self.peak_memory_bytes = peak_memory_bytes
+    record: ChainRecord
+    answers: list[str]
+    tool_names: list[str]
+    peak_memory_bytes: int = 0
 
 
+@dataclass
 class BenchmarkExecutor:
     """Execute tool calls via the SDK's _ActionBatch and ParallelToolExecutor."""
 
-    def __init__(self, max_workers: int = 1) -> None:
-        self.max_workers = max_workers
-        self.metrics = ConversationMetrics()
-        self._executor = ParallelToolExecutor(max_workers=max_workers)
-        self._state = _MinimalState()
+    max_workers: int = 1
+    metrics: ConversationMetrics = field(default_factory=ConversationMetrics)
+    _executor: ParallelToolExecutor = field(init=False, repr=False)
+    _state: _MinimalState = field(default_factory=_MinimalState, repr=False)
+
+    def __post_init__(self) -> None:
+        self._executor = ParallelToolExecutor(max_workers=self.max_workers)
 
     def run_batch(
         self,
