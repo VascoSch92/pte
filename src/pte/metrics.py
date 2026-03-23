@@ -114,13 +114,13 @@ class ConversationMetrics:
         )
 
 
+@dataclass
 class ConcurrencyTracker:
     """Tracks peak concurrent executions within a batch."""
 
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._active = 0
-        self._peak = 0
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    _active: int = field(default=0, repr=False)
+    _peak: int = 0
 
     def enter(self) -> None:
         with self._lock:
