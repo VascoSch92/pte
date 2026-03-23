@@ -121,7 +121,9 @@ def main() -> None:
 
     base_dir = Path(config.working_dir).resolve()
     base_dir.mkdir(parents=True, exist_ok=True)
-    _setup_sdk(config.sdk_repo, config.sdk_branch, str(base_dir), skip=args.skip_install)
+    _setup_sdk(
+        config.sdk_repo, config.sdk_branch, str(base_dir), skip=args.skip_install
+    )
 
     from pte.runner import print_results, run_benchmark, save_results
 

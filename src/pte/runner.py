@@ -421,8 +421,8 @@ def run_benchmark(
 
     bench_start = time.perf_counter()
 
-    total_steps = len(levels) * len(config.chains) * (
-        config.warmup_runs + config.benchmark_runs
+    total_steps = (
+        len(levels) * len(config.chains) * (config.warmup_runs + config.benchmark_runs)
     )
 
     pbar = tqdm(
