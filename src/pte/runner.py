@@ -13,6 +13,7 @@ from typing import Any
 
 from rich.console import Console
 from rich.table import Table
+from tqdm import tqdm
 
 from pte.config import BenchmarkConfig, ChainConfig, ToolScenario, WorkspaceRepo
 
@@ -70,10 +71,31 @@ class _ToolSpec:
     impl: str = "impl"
     executor_kwarg: str = "workspace_root"
     readonly: bool = False
+    extra_kwargs: tuple[tuple[str, Any], ...] = ()
+
+
+def _is_tmux_available() -> bool:
+    """Check if tmux is available on the system."""
+    try:
+        result = subprocess.run(
+            ["tmux", "-V"], capture_output=True, text=True, timeout=5.0
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
 
 
 _TOOL_SPECS: dict[str, _ToolSpec] = {
-    "terminal": _ToolSpec("openhands.tools.terminal", executor_kwarg="working_dir"),
+    "terminal_subprocess": _ToolSpec(
+        "openhands.tools.terminal",
+        executor_kwarg="working_dir",
+        extra_kwargs=(("terminal_type", "subprocess"),),
+    ),
+    "terminal_tmux": _ToolSpec(
+        "openhands.tools.terminal",
+        executor_kwarg="working_dir",
+        extra_kwargs=(("terminal_type", "tmux"),),
+    ),
     "file_editor": _ToolSpec("openhands.tools.file_editor"),
     "glob": _ToolSpec(
         "openhands.tools.glob", executor_kwarg="working_dir", readonly=True
@@ -139,6 +161,7 @@ def _create_tool(tool_name: str, working_dir: str) -> Any:
     executor_cls = _find_class(impl_mod, "Executor")
 
     kwargs: dict[str, Any] = {spec.executor_kwarg: working_dir}
+    kwargs.update(dict(spec.extra_kwargs))
     if tool_name == "planning_file_editor":
         kwargs["plan_path"] = os.path.join(working_dir, "PLAN.md")
 
@@ -151,6 +174,27 @@ def _create_tool(tool_name: str, working_dir: str) -> Any:
         annotations=ToolAnnotations(readOnlyHint=spec.readonly),
         executor=executor_cls(**kwargs),
     )
+
+
+def _filter_chains_by_availability(
+    chains: list[ChainConfig],
+) -> list[ChainConfig]:
+    """Skip chains requiring unavailable backends (e.g. terminal_tmux without tmux)."""
+    tmux_available: bool | None = None  # lazy check
+
+    filtered = []
+    for chain in chains:
+        needs_tmux = any(s.tool_name == "terminal_tmux" for s in chain.calls)
+        if needs_tmux:
+            if tmux_available is None:
+                tmux_available = _is_tmux_available()
+            if not tmux_available:
+                console.print(
+                    f"  [yellow]Skipping '{chain.name}' (tmux not available)[/yellow]"
+                )
+                continue
+        filtered.append(chain)
+    return filtered
 
 
 def _resolve_tools(chains: list[ChainConfig], working_dir: str) -> dict[str, Any]:
@@ -325,6 +369,8 @@ def run_benchmark(
     working_dir = str(Path(config.working_dir).resolve())
     actual_dir = _setup_workspace(working_dir, config.workspace_repo)
     console.print(f"[dim]Workspace: {actual_dir}[/dim]")
+
+    config.chains = _filter_chains_by_availability(config.chains)
     tools_map = _resolve_tools(config.chains, actual_dir)
 
     if not config.chains:
@@ -355,6 +401,17 @@ def run_benchmark(
 
     bench_start = time.perf_counter()
 
+    total_steps = len(levels) * len(config.chains) * (
+        config.warmup_runs + config.benchmark_runs
+    )
+
+    pbar = tqdm(
+        total=total_steps,
+        desc="Benchmarking",
+        unit="run",
+        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}] {postfix}",
+    )
+
     for level in levels:
         level_results: dict[str, ChainRunResult] = {}
 
@@ -362,14 +419,19 @@ def run_benchmark(
             result = ChainRunResult(chain.name)
 
             for _ in range(config.warmup_runs):
+                pbar.set_postfix_str(f"w={level} {chain.name} (warmup)")
                 events = _build_action_events(chain.calls, tools_map, actual_dir)
                 BenchmarkExecutor(max_workers=level).run_chain(
                     chain.name,
                     events,
                     tools_map,
                 )
+                pbar.update(1)
 
             for i in range(config.benchmark_runs):
+                pbar.set_postfix_str(
+                    f"w={level} {chain.name} [{i + 1}/{config.benchmark_runs}]"
+                )
                 events = _build_action_events(chain.calls, tools_map, actual_dir)
                 chain_result = BenchmarkExecutor(max_workers=level).run_chain(
                     chain.name,
@@ -396,15 +458,13 @@ def run_benchmark(
                         chain_result.answers,
                     )
 
+                pbar.update(1)
+
             level_results[chain.name] = result
 
-        for name, r in level_results.items():
-            errors = r.tool_errors + r.mismatches
-            icon = "\u2717" if errors else "\u2713"
-            style = "red" if errors else "green"
-            console.print(f"  [cyan]w={level}[/cyan] [{style}]{icon}[/{style}] {name}")
-
         results[level] = level_results
+
+    pbar.close()
 
     # Cleanup shared resources
     if _browser_executor is not None:

@@ -16,50 +16,96 @@ working_dir: tmp
 
 chains:
 
-  # ── single-tool: terminal (UNSAFE) ──────────────────────────────────
+  # ── single-tool: terminal subprocess (UNSAFE) ──────────────────────
 
-  - name: tool-terminal
+  - name: tool-terminal-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo AAA" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo BBB" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo CCC" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo DDD" }
 
-  - name: tool-terminal-cwd
+  - name: tool-terminal-subprocess-cwd
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Lib/asyncio && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Objects && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "pwd" }
 
-  - name: tool-terminal-env
+  - name: tool-terminal-subprocess-env
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_X=alpha && echo $PTE_X" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_X:-unset}" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_X=beta && echo $PTE_X" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_X:-unset}" }
 
-  - name: tool-terminal-long
+  - name: tool-terminal-subprocess-long
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "sleep 0.2 && echo DONE_A" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo FAST_B" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "sleep 0.1 && echo DONE_C" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo FAST_D" }
+
+  # ── single-tool: terminal tmux (UNSAFE, skipped if tmux unavailable)
+
+  - name: tool-terminal-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "echo AAA" }
+      - tool_name: terminal_tmux
+        action: { command: "echo BBB" }
+      - tool_name: terminal_tmux
+        action: { command: "echo CCC" }
+      - tool_name: terminal_tmux
+        action: { command: "echo DDD" }
+
+  - name: tool-terminal-tmux-cwd
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "cd Lib/asyncio && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "cd Objects && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "pwd" }
+
+  - name: tool-terminal-tmux-env
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_X=alpha && echo $PTE_X" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_X:-unset}" }
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_X=beta && echo $PTE_X" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_X:-unset}" }
+
+  - name: tool-terminal-tmux-long
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_A" }
+      - tool_name: terminal_tmux
+        action: { command: "echo FAST_B" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.1 && echo DONE_C" }
+      - tool_name: terminal_tmux
         action: { command: "echo FAST_D" }
 
   # ── single-tool: file_editor (SAFE for reads) ──────────────────────
@@ -213,35 +259,68 @@ chains:
 
   # ── cross-tool ─────────────────────────────────────────────────────
 
-  - name: cross-terminal-file-editor
+  - name: cross-subprocess-file-editor
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "wc -l Lib/asyncio/tasks.py" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "head -5 Lib/asyncio/tasks.py" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/runners.py }
 
-  - name: cross-terminal-grep
+  - name: cross-tmux-file-editor
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "wc -l Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: terminal_tmux
+        action: { command: "head -5 Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+
+  - name: cross-subprocess-grep
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "grep -c 'def ' Lib/asyncio/tasks.py" }
       - tool_name: grep
         action: { pattern: "def compile", include: "*.py" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "grep -c 'PyObject' Objects/dictobject.c" }
       - tool_name: grep
         action: { pattern: "PyDict_SetItem", include: "*.c" }
 
-  - name: cross-terminal-glob
+  - name: cross-tmux-grep
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "grep -c 'def ' Lib/asyncio/tasks.py" }
+      - tool_name: grep
+        action: { pattern: "def compile", include: "*.py" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -c 'PyObject' Objects/dictobject.c" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+
+  - name: cross-subprocess-glob
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "find Lib/asyncio -name '*.py' | wc -l" }
       - tool_name: glob
         action: { pattern: "Lib/asyncio/*.py" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "find Objects -name '*.c' | wc -l" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+
+  - name: cross-tmux-glob
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "find Lib/asyncio -name '*.py' | wc -l" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: terminal_tmux
         action: { command: "find Objects -name '*.c' | wc -l" }
       - tool_name: glob
         action: { pattern: "Objects/*.c" }
@@ -261,7 +340,7 @@ chains:
       - tool_name: glob
         action: { pattern: "Objects/*.c" }
 
-  - name: cross-read-write
+  - name: cross-read-write-subprocess
     calls:
       - tool_name: glob
         action: { pattern: "**/*.py" }
@@ -275,16 +354,54 @@ chains:
         action: { command: view, path: Lib/asyncio/tasks.py }
       - tool_name: read_file
         action: { file_path: "Include/dictobject.h" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "find . -name '*.py' | wc -l" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "find . -name '*.c' | wc -l" }
 
-  - name: cross-all-tools
+  - name: cross-read-write-tmux
     calls:
-      - tool_name: terminal
+      - tool_name: glob
+        action: { pattern: "**/*.py" }
+      - tool_name: glob
+        action: { pattern: "**/*.c" }
+      - tool_name: grep
+        action: { pattern: "def main", include: "*.py" }
+      - tool_name: grep
+        action: { pattern: "PyObject_Call", include: "*.c" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: terminal_tmux
+        action: { command: "find . -name '*.py' | wc -l" }
+      - tool_name: terminal_tmux
+        action: { command: "find . -name '*.c' | wc -l" }
+
+  - name: cross-all-tools-subprocess
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "echo SENTINEL_1" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo SENTINEL_2" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: read_file
+        action: { file_path: "Lib/pathlib/__init__.py" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+
+  - name: cross-all-tools-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "echo SENTINEL_1" }
+      - tool_name: terminal_tmux
         action: { command: "echo SENTINEL_2" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py }
@@ -323,15 +440,26 @@ chains:
 
   # ── impl-p0: ResourceLockManager ───────────────────────────────────
 
-  - name: impl-p0-lock-same-resource # same resource must serialize
+  - name: impl-p0-lock-same-resource-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo 'WRITE_1' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo 'WRITE_2' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo 'WRITE_3' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'WRITE_4' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+
+  - name: impl-p0-lock-same-resource-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITE_1' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITE_2' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITE_3' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal_tmux
         action: { command: "echo 'WRITE_4' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
 
   - name: impl-p0-lock-different-resources # different resources can parallelize
@@ -349,26 +477,48 @@ chains:
       - tool_name: file_editor
         action: { command: view, path: Include/dictobject.h, view_range: [1, 50] }
 
-  - name: impl-p0-lock-ordering # sorted lock order prevents deadlocks
+  - name: impl-p0-lock-ordering-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
 
-  - name: impl-p0-lock-contention # slow holder, fast waiters
+  - name: impl-p0-lock-ordering-tmux
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
+
+  - name: impl-p0-lock-contention-subprocess
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "sleep 0.3 && echo SLOW_DONE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo FAST_1" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo FAST_2" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo FAST_3" }
+
+  - name: impl-p0-lock-contention-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.3 && echo SLOW_DONE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo FAST_1" }
+      - tool_name: terminal_tmux
+        action: { command: "echo FAST_2" }
+      - tool_name: terminal_tmux
         action: { command: "echo FAST_3" }
 
   # ── impl-p0: get_resource_keys() on ToolDefinition ────────────────
@@ -405,7 +555,7 @@ chains:
 
   # ── impl-p0: wire locking into ParallelToolExecutor ────────────────
 
-  - name: impl-p0-executor-three-paths # all 3 code paths in one chain
+  - name: impl-p0-executor-three-paths-subprocess
     calls:
       - tool_name: glob
         action: { pattern: "Lib/asyncio/*.py" }
@@ -413,7 +563,26 @@ chains:
         action: { pattern: "class Task", include: "*.py" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo PATH_2_TERMINAL" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+
+  - name: impl-p0-executor-three-paths-tmux
+    calls:
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: terminal_tmux
         action: { command: "echo PATH_2_TERMINAL" }
       - tool_name: task_tracker
         action: { command: "view" }
@@ -471,19 +640,34 @@ chains:
       - tool_name: file_editor
         action: { command: view, path: Lib/re/__init__.py }
 
-  - name: impl-p1-file-cross-tool-conflict # terminal + file_editor on same file
+  - name: impl-p1-file-cross-tool-conflict-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "wc -l Lib/asyncio/tasks.py" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "head -10 Lib/asyncio/tasks.py" }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
       - tool_name: read_file
         action: { file_path: "Lib/asyncio/tasks.py" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "cat Lib/asyncio/tasks.py | wc -c" }
+
+  - name: impl-p1-file-cross-tool-conflict-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "wc -l Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
+      - tool_name: terminal_tmux
+        action: { command: "head -10 Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: terminal_tmux
         action: { command: "cat Lib/asyncio/tasks.py | wc -c" }
 
   - name: impl-p1-file-planning-editor # planning_file_editor shares per-file locking
@@ -499,24 +683,39 @@ chains:
 
   # ── impl-p1: get_resource_keys() for terminal/browser ──────────────
 
-  - name: impl-p1-terminal-session-serialize # terminal:session serializes all
+  - name: impl-p1-terminal-session-serialize-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_SESSION=alpha && echo $PTE_SESSION" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_SESSION:-unset}" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Lib && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_SESSION=beta && echo $PTE_SESSION" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_SESSION:-unset}" }
 
-  - name: impl-p1-terminal-no-block-readonly # terminal lock doesn't block readonly
+  - name: impl-p1-terminal-session-serialize-tmux
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_SESSION=alpha && echo $PTE_SESSION" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_SESSION:-unset}" }
+      - tool_name: terminal_tmux
+        action: { command: "cd Lib && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_SESSION=beta && echo $PTE_SESSION" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_SESSION:-unset}" }
+
+  - name: impl-p1-terminal-no-block-readonly-subprocess
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "sleep 0.2 && echo SLOW_TERMINAL" }
       - tool_name: glob
         action: { pattern: "Lib/asyncio/*.py" }
@@ -524,7 +723,22 @@ chains:
         action: { pattern: "class Task", include: "*.py" }
       - tool_name: read_file
         action: { file_path: "Include/dictobject.h" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo FAST_TERMINAL" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+
+  - name: impl-p1-terminal-no-block-readonly-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo SLOW_TERMINAL" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: terminal_tmux
         action: { command: "echo FAST_TERMINAL" }
       - tool_name: list_directory
         action: { dir_path: "Objects" }
@@ -578,47 +792,88 @@ chains:
       - tool_name: read_file
         action: { file_path: "Lib/asyncio/tasks.py" }
 
-  # ── impl-p3: tmux pane pool ────────────────────────────────────────
+  # ── impl-p3: pane pool / parallel terminal ──────────────────────────
 
-  - name: impl-p3-pane-pool-parallel # independent commands across panes
+  - name: impl-p3-pane-pool-parallel-subprocess
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo PANE_A && sleep 0.1 && echo PANE_A_DONE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo PANE_B && sleep 0.1 && echo PANE_B_DONE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo PANE_C && sleep 0.1 && echo PANE_C_DONE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo PANE_D && sleep 0.1 && echo PANE_D_DONE" }
 
-  - name: impl-p3-pane-pool-cwd # CWD isolation between panes
+  - name: impl-p3-pane-pool-parallel-tmux
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "echo PANE_A && sleep 0.1 && echo PANE_A_DONE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo PANE_B && sleep 0.1 && echo PANE_B_DONE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo PANE_C && sleep 0.1 && echo PANE_C_DONE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo PANE_D && sleep 0.1 && echo PANE_D_DONE" }
+
+  - name: impl-p3-pane-pool-cwd-subprocess
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "cd Lib/asyncio && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Objects && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Include && pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "pwd" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "cd Lib/test && pwd" }
 
-  - name: impl-p3-pane-pool-env # env var isolation between panes
+  - name: impl-p3-pane-pool-cwd-tmux
     calls:
-      - tool_name: terminal
+      - tool_name: terminal_tmux
+        action: { command: "cd Lib/asyncio && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "cd Objects && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "cd Include && pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "pwd" }
+      - tool_name: terminal_tmux
+        action: { command: "cd Lib/test && pwd" }
+
+  - name: impl-p3-pane-pool-env-subprocess
+    calls:
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_PANE=one && echo $PTE_PANE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_PANE:-unset}" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_PANE=two && echo $PTE_PANE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "echo ${PTE_PANE:-unset}" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
         action: { command: "export PTE_PANE=three && echo $PTE_PANE" }
-      - tool_name: terminal
+      - tool_name: terminal_subprocess
+        action: { command: "echo ${PTE_PANE:-unset}" }
+
+  - name: impl-p3-pane-pool-env-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_PANE=one && echo $PTE_PANE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_PANE:-unset}" }
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_PANE=two && echo $PTE_PANE" }
+      - tool_name: terminal_tmux
+        action: { command: "echo ${PTE_PANE:-unset}" }
+      - tool_name: terminal_tmux
+        action: { command: "export PTE_PANE=three && echo $PTE_PANE" }
+      - tool_name: terminal_tmux
         action: { command: "echo ${PTE_PANE:-unset}" }
 
   # ── impl-p3: browser multi-context (SKIPPED — SDK bug) ────────────
