@@ -2,7 +2,6 @@
 
 import importlib
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -30,7 +29,7 @@ _mcp_client = None
 
 
 def _setup_workspace(working_dir: str, repo: WorkspaceRepo | None) -> str:
-    os.makedirs(working_dir, exist_ok=True)
+    Path(working_dir).mkdir(parents=True, exist_ok=True)
     if repo is None:
         return working_dir
 
@@ -182,7 +181,7 @@ def _create_tool(tool_name: str, working_dir: str) -> Any:
     kwargs: dict[str, Any] = {spec.executor_kwarg: working_dir}
     kwargs.update(dict(spec.extra_kwargs))
     if tool_name == ToolName.PLANNING_FILE_EDITOR:
-        kwargs["plan_path"] = os.path.join(working_dir, "PLAN.md")
+        kwargs["plan_path"] = str(Path(working_dir) / "PLAN.md")
 
     from openhands.sdk.tool.tool import ToolAnnotations
 
@@ -267,7 +266,7 @@ def _create_browser_tool(tool_name: str, working_dir: str) -> Any:
     if _browser_executor is None:
         _browser_executor = BrowserToolExecutor(
             headless=True,
-            full_output_save_dir=os.path.join(working_dir, ".browser_output"),
+            full_output_save_dir=str(Path(working_dir) / ".browser_output"),
         )
 
     is_readonly = tool_name in (
@@ -314,8 +313,8 @@ def _build_action_events(
 
         action_kwargs = dict(scenario.action)
         for key in ("path", "file_path", "dir_path"):
-            if key in action_kwargs and not os.path.isabs(action_kwargs[key]):
-                action_kwargs[key] = os.path.join(working_dir, action_kwargs[key])
+            if key in action_kwargs and not Path(action_kwargs[key]).is_absolute():
+                action_kwargs[key] = str(Path(working_dir) / action_kwargs[key])
 
         for _ in range(scenario.repeat):
             if scenario.tool_name.startswith("mcp_"):
