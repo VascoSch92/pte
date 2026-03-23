@@ -595,8 +595,8 @@ def print_results(
     out.print()
     out.print(table)
     out.print(
-        "\n[dim]Speedup = sum(tool_durations) / wall_clock. "
-        "1.0x = sequential, higher = more parallel.\n"
+        "\n[dim]Speedup = wall_w1 / wall_wN. "
+        "1.00x = sequential baseline, higher = faster.\n"
         "Errors = tool exceptions + answer mismatches vs worker=1 ground truth.\n"
         f"Unique = distinct answer sets out of {num_runs or '?'} runs. "
         "1/N = deterministic.[/dim]"

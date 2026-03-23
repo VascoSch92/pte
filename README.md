@@ -43,6 +43,7 @@ Each chain sends all its calls to a single `_ActionBatch.prepare()`. Worker=1 is
 |---|---|---|
 | Single-tool | `tool-*` | One tool type under concurrency stress |
 | Cross-tool | `cross-*` | Interactions between different tool types |
+| Write-conflict | `write-conflict-*` | Concurrent writes to same/different files |
 | Implementation | `impl-*` | Verifies [#2527 Section 10](https://github.com/OpenHands/software-agent-sdk/issues/2527#issuecomment-4104045362) priorities |
 
 ## Output

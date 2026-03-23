@@ -876,6 +876,85 @@ chains:
       - tool_name: terminal_tmux
         action: { command: "echo ${PTE_PANE:-unset}" }
 
+  # ── write-conflict: concurrent writes to same file ──────────────────
+
+  - name: write-conflict-same-file-subprocess # terminal writes to same file
+    calls:
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'WRITER_1' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'WRITER_2' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'WRITER_3' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'WRITER_4' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+
+  - name: write-conflict-same-file-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITER_1' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITER_2' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITER_3' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'WRITER_4' > /tmp/pte_write_conflict.txt && cat /tmp/pte_write_conflict.txt" }
+
+  - name: write-conflict-write-file-same-path # concurrent write_file to same path
+    calls:
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_write_file.txt", content: "CONTENT_A\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_write_file.txt", content: "CONTENT_B\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_write_file.txt", content: "CONTENT_C\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_write_file.txt", content: "CONTENT_D\n" }
+
+  - name: write-conflict-write-file-diff-paths # concurrent write_file to different paths (should parallelize)
+    calls:
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_wf_a.txt", content: "FILE_A\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_wf_b.txt", content: "FILE_B\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_wf_c.txt", content: "FILE_C\n" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_wf_d.txt", content: "FILE_D\n" }
+
+  - name: write-conflict-append-subprocess # concurrent appends to same file
+    calls:
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'LINE_2' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'LINE_3' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'LINE_4' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+
+  - name: write-conflict-append-tmux
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'LINE_2' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'LINE_3' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+      - tool_name: terminal_tmux
+        action: { command: "echo 'LINE_4' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+
+  - name: write-conflict-cross-tool-same-file # terminal + write_file + file_editor on same file
+    calls:
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'TERMINAL_WRITE' > /tmp/pte_cross_write.txt && cat /tmp/pte_cross_write.txt" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_cross_write.txt", content: "WRITE_FILE_CONTENT\n" }
+      - tool_name: terminal_subprocess
+        action: { command: "echo 'TERMINAL_OVERWRITE' > /tmp/pte_cross_write.txt && cat /tmp/pte_cross_write.txt" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_cross_write.txt", content: "WRITE_FILE_FINAL\n" }
+
   # ── impl-p3: browser multi-context (SKIPPED — SDK bug) ────────────
 
   # - name: impl-p3-browser-multi-context
