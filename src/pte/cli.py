@@ -2,10 +2,10 @@
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rich.console import Console
@@ -51,9 +51,9 @@ def _setup_sdk(sdk_repo: str, branch: str, base_dir: str, skip: bool = False) ->
 
     # Add SDK packages to sys.path
     for sub in ("openhands-sdk", "openhands-tools"):
-        p = str(sdk_dir / sub)
-        if os.path.isdir(p) and p not in sys.path:
-            sys.path.insert(0, p)
+        p = sdk_dir / sub
+        if p.is_dir() and str(p) not in sys.path:
+            sys.path.insert(0, str(p))
 
     try:
         import openhands.sdk  # noqa: F401
@@ -119,9 +119,9 @@ def main() -> None:
     if args.branch:
         config.sdk_branch = args.branch
 
-    base_dir = str(Path(config.working_dir).resolve())
-    os.makedirs(base_dir, exist_ok=True)
-    _setup_sdk(config.sdk_repo, config.sdk_branch, base_dir, skip=args.skip_install)
+    base_dir = Path(config.working_dir).resolve()
+    base_dir.mkdir(parents=True, exist_ok=True)
+    _setup_sdk(config.sdk_repo, config.sdk_branch, str(base_dir), skip=args.skip_install)
 
     from pte.runner import print_results, run_benchmark, save_results
 
@@ -159,8 +159,21 @@ def main() -> None:
     print_results(results)
 
     if args.save is not None:
-        save_dir = config_path.parent / args.save
+        # Build unique run directory: <save>/<timestamp>_<command_slug>/
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        cmd_slug = "_".join(sys.argv[1:]).replace("/", "_").replace(".", "_")
+        # Truncate to keep path reasonable
+        cmd_slug = cmd_slug[:80] if len(cmd_slug) > 80 else cmd_slug
+        run_id = f"{timestamp}_{cmd_slug}"
+        save_dir = config_path.parent / args.save / run_id
         save_results(results, ground_truth, str(save_dir))
+
+        # Save console summary
+        summary_file = save_dir / "summary.txt"
+        file_console = Console(file=open(summary_file, "w"), width=120)
+        print_results(results, output=file_console)
+        file_console.file.close()
+        console.print(f"[dim]Summary saved to {summary_file}[/dim]")
 
 
 if __name__ == "__main__":

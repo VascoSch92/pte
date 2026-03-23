@@ -508,8 +508,10 @@ def _print_summary(
     results: dict[int, dict[str, ChainRunResult]],
     levels: list[int],
     chain_names: list[str],
+    output: Console | None = None,
 ) -> None:
-    console.print()
+    out = output or console
+    out.print()
 
     total_errors = sum(
         r.tool_errors + r.mismatches
@@ -528,14 +530,19 @@ def _print_summary(
             sign = "+" if saved < 0 else "-"
             time_lines.append(f"w={level}: {sign}{abs(saved):.2f}s")
         if time_lines:
-            console.print(f"[bold]Time vs w=1:[/bold] {' | '.join(time_lines)}")
+            out.print(f"[bold]Time vs w=1:[/bold] {' | '.join(time_lines)}")
 
-    console.print(f"[bold]Total errors:[/bold] {total_errors}")
+    out.print(f"[bold]Total errors:[/bold] {total_errors}")
 
 
-def print_results(results: dict[int, dict[str, ChainRunResult]]) -> None:
+def print_results(
+    results: dict[int, dict[str, ChainRunResult]],
+    output: Console | None = None,
+) -> None:
     if not results:
         return
+
+    out = output or console
 
     table = Table(title="Benchmark Results", min_width=90)
     table.add_column("Chain", style="magenta", no_wrap=True)
@@ -575,9 +582,9 @@ def print_results(results: dict[int, dict[str, ChainRunResult]]) -> None:
         if name != chain_names[-1]:
             table.add_section()
 
-    console.print()
-    console.print(table)
-    console.print(
+    out.print()
+    out.print(table)
+    out.print(
         "\n[dim]Speedup = sum(tool_durations) / wall_clock. "
         "1.0x = sequential, higher = more parallel.\n"
         "Errors = tool exceptions + answer mismatches vs worker=1 ground truth.\n"
@@ -585,7 +592,7 @@ def print_results(results: dict[int, dict[str, ChainRunResult]]) -> None:
         "1/N = deterministic.[/dim]"
     )
 
-    _print_summary(results, levels, chain_names)
+    _print_summary(results, levels, chain_names, output=out)
 
 
 def save_results(
