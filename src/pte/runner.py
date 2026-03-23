@@ -401,6 +401,7 @@ def run_benchmark(
         levels = [1] + levels
 
     ground_truth: dict[str, list[str]] = {}
+    baseline_wall: dict[str, float] = {}  # w=1 mean wall time per chain
     results: dict[int, dict[str, ChainRunResult]] = {}
 
     chain_table = Table(
@@ -460,7 +461,6 @@ def run_benchmark(
                 rec = chain_result.record
 
                 result.wall_seconds.append(rec.wall_clock_seconds)
-                result.speedups.append(rec.speedup)
                 result.tool_errors += rec.tool_errors
                 result.peak_memory_bytes.append(chain_result.peak_memory_bytes)
                 result.run_answers.append(chain_result.answers)
@@ -478,6 +478,16 @@ def run_benchmark(
                     )
 
                 pbar.update(1)
+
+            # Compute speedup relative to w=1 baseline
+            if level == 1:
+                baseline_wall[chain.name] = result.mean_wall
+                result.speedups = [1.0] * len(result.wall_seconds)
+            else:
+                bw = baseline_wall.get(chain.name, 0.0)
+                result.speedups = [
+                    bw / w if w > 0 else 1.0 for w in result.wall_seconds
+                ]
 
             level_results[chain.name] = result
 
