@@ -5,7 +5,7 @@ import logging
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from itertools import zip_longest
 from pathlib import Path
@@ -334,18 +334,18 @@ def _build_action_events(
 # ── result types ──────────────────────────────────────────────────────
 
 
+@dataclass
 class ChainRunResult:
     """Aggregated result for one chain at one parallelism level."""
 
-    def __init__(self, name: str):
-        self.name = name
-        self.wall_seconds: list[float] = []
-        self.speedups: list[float] = []
-        self.peak_memory_bytes: list[int] = []
-        self.mismatches = 0
-        self.tool_errors = 0
-        self.run_answers: list[list[str]] = []
-        self.tool_names: list[str] = []
+    name: str
+    wall_seconds: list[float] = field(default_factory=list)
+    speedups: list[float] = field(default_factory=list)
+    peak_memory_bytes: list[int] = field(default_factory=list)
+    mismatches: int = 0
+    tool_errors: int = 0
+    run_answers: list[list[str]] = field(default_factory=list)
+    tool_names: list[str] = field(default_factory=list)
 
     @property
     def mean_wall(self) -> float:
