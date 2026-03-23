@@ -1,0 +1,18 @@
+[project]
+name = "pte"
+version = "0.1.0"
+description = "Parallel Tool Execution benchmark for OpenHands software-agent-sdk"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml>=6.0",
+    "rich>=13.0",
+]
+
+[project.scripts]
+pte = "pte.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.15.7",
+]

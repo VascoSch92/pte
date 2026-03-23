@@ -1,0 +1,635 @@
+# PTE benchmark configuration
+# Docs: https://github.com/OpenHands/software-agent-sdk/issues/2526
+
+sdk_branch: main
+sdk_repo: https://github.com/OpenHands/software-agent-sdk.git
+
+workspace_repo:
+  url: https://github.com/python/cpython.git
+  branch: main
+  shallow: true
+
+parallelism_levels: [1, 2, 4, 8]
+warmup_runs: 1
+benchmark_runs: 3
+working_dir: tmp
+
+chains:
+
+  # ── single-tool: terminal (UNSAFE) ──────────────────────────────────
+
+  - name: tool-terminal
+    calls:
+      - tool_name: terminal
+        action: { command: "echo AAA" }
+      - tool_name: terminal
+        action: { command: "echo BBB" }
+      - tool_name: terminal
+        action: { command: "echo CCC" }
+      - tool_name: terminal
+        action: { command: "echo DDD" }
+
+  - name: tool-terminal-cwd
+    calls:
+      - tool_name: terminal
+        action: { command: "cd Lib/asyncio && pwd" }
+      - tool_name: terminal
+        action: { command: "pwd" }
+      - tool_name: terminal
+        action: { command: "cd Objects && pwd" }
+      - tool_name: terminal
+        action: { command: "pwd" }
+
+  - name: tool-terminal-env
+    calls:
+      - tool_name: terminal
+        action: { command: "export PTE_X=alpha && echo $PTE_X" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_X:-unset}" }
+      - tool_name: terminal
+        action: { command: "export PTE_X=beta && echo $PTE_X" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_X:-unset}" }
+
+  - name: tool-terminal-long
+    calls:
+      - tool_name: terminal
+        action: { command: "sleep 0.2 && echo DONE_A" }
+      - tool_name: terminal
+        action: { command: "echo FAST_B" }
+      - tool_name: terminal
+        action: { command: "sleep 0.1 && echo DONE_C" }
+      - tool_name: terminal
+        action: { command: "echo FAST_D" }
+
+  # ── single-tool: file_editor (SAFE for reads) ──────────────────────
+
+  - name: tool-file-editor-read
+    calls:
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+
+  - name: tool-file-editor-multi
+    calls:
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/pathlib/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/json/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/re/__init__.py }
+
+  # ── single-tool: glob (SAFE) ───────────────────────────────────────
+
+  - name: tool-glob
+    calls:
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+      - tool_name: glob
+        action: { pattern: "Include/*.h" }
+      - tool_name: glob
+        action: { pattern: "Lib/test/test_*.py" }
+      - tool_name: glob
+        action: { pattern: "Modules/*.c" }
+      - tool_name: glob
+        action: { pattern: "**/*.cfg" }
+
+  # ── single-tool: grep (SAFE) ───────────────────────────────────────
+
+  - name: tool-grep
+    calls:
+      - tool_name: grep
+        action: { pattern: "def compile", include: "*.py" }
+      - tool_name: grep
+        action: { pattern: "PyObject_Call", include: "*.c" }
+      - tool_name: grep
+        action: { pattern: "#include <Python", include: "*.h" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+      - tool_name: grep
+        action: { pattern: "import asyncio", include: "*.py" }
+
+  # ── single-tool: read_file / list_directory — Gemini (SAFE) ────────
+
+  - name: tool-read-file
+    calls:
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/runners.py" }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: read_file
+        action: { file_path: "Lib/pathlib/__init__.py" }
+
+  - name: tool-list-directory
+    calls:
+      - tool_name: list_directory
+        action: { dir_path: "Lib/asyncio" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+      - tool_name: list_directory
+        action: { dir_path: "Include" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/test" }
+
+  # ── single-tool: task_tracker (UNSAFE) ─────────────────────────────
+
+  - name: tool-task-tracker
+    calls:
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+
+  # ── single-tool: planning_file_editor (CONDITIONAL) ────────────────
+
+  - name: tool-planning-file-editor
+    calls:
+      - tool_name: planning_file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: planning_file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+      - tool_name: planning_file_editor
+        action: { command: view, path: Include/dictobject.h }
+      - tool_name: planning_file_editor
+        action: { command: view, path: Lib/pathlib/__init__.py }
+
+  # ── single-tool: MCP fetch (DEPENDS on server) ────────────────────
+
+  - name: tool-mcp-fetch
+    calls:
+      - tool_name: mcp_fetch
+        action: { url: "https://example.com" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get" }
+      - tool_name: mcp_fetch
+        action: { url: "https://example.com" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/ip" }
+
+  # ── single-tool: browser (SKIPPED — SDK bug in get_state()) ────────
+
+  # - name: tool-browser-read
+  #   calls:
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://example.com" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: browser_get_content
+  #       action: {}
+  #     - tool_name: browser_get_state
+  #       action: {}
+
+  # - name: tool-browser-navigate
+  #   calls:
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://example.com" }
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://httpbin.org/get" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: browser_get_content
+  #       action: {}
+
+  # ── cross-tool ─────────────────────────────────────────────────────
+
+  - name: cross-terminal-file-editor
+    calls:
+      - tool_name: terminal
+        action: { command: "wc -l Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: terminal
+        action: { command: "head -5 Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+
+  - name: cross-terminal-grep
+    calls:
+      - tool_name: terminal
+        action: { command: "grep -c 'def ' Lib/asyncio/tasks.py" }
+      - tool_name: grep
+        action: { pattern: "def compile", include: "*.py" }
+      - tool_name: terminal
+        action: { command: "grep -c 'PyObject' Objects/dictobject.c" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+
+  - name: cross-terminal-glob
+    calls:
+      - tool_name: terminal
+        action: { command: "find Lib/asyncio -name '*.py' | wc -l" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: terminal
+        action: { command: "find Objects -name '*.c' | wc -l" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+
+  - name: cross-readonly
+    calls:
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/asyncio" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+
+  - name: cross-read-write
+    calls:
+      - tool_name: glob
+        action: { pattern: "**/*.py" }
+      - tool_name: glob
+        action: { pattern: "**/*.c" }
+      - tool_name: grep
+        action: { pattern: "def main", include: "*.py" }
+      - tool_name: grep
+        action: { pattern: "PyObject_Call", include: "*.c" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: terminal
+        action: { command: "find . -name '*.py' | wc -l" }
+      - tool_name: terminal
+        action: { command: "find . -name '*.c' | wc -l" }
+
+  - name: cross-all-tools
+    calls:
+      - tool_name: terminal
+        action: { command: "echo SENTINEL_1" }
+      - tool_name: terminal
+        action: { command: "echo SENTINEL_2" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: read_file
+        action: { file_path: "Lib/pathlib/__init__.py" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+
+  - name: cross-mcp-native
+    calls:
+      - tool_name: mcp_fetch
+        action: { url: "https://example.com" }
+      - tool_name: grep
+        action: { pattern: "def compile", include: "*.py" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get" }
+
+  # - name: cross-browser-readonly  # SKIPPED — SDK browser bug
+  #   calls:
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://example.com" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: glob
+  #       action: { pattern: "Lib/asyncio/*.py" }
+  #     - tool_name: grep
+  #       action: { pattern: "class Task", include: "*.py" }
+
+  # ── impl-p0: ResourceLockManager ───────────────────────────────────
+
+  - name: impl-p0-lock-same-resource # same resource must serialize
+    calls:
+      - tool_name: terminal
+        action: { command: "echo 'WRITE_1' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal
+        action: { command: "echo 'WRITE_2' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal
+        action: { command: "echo 'WRITE_3' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+      - tool_name: terminal
+        action: { command: "echo 'WRITE_4' > /tmp/pte_lock_test.txt && cat /tmp/pte_lock_test.txt" }
+
+  - name: impl-p0-lock-different-resources # different resources can parallelize
+    calls:
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 50] }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py, view_range: [1, 50] }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/pathlib/__init__.py, view_range: [1, 50] }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/json/__init__.py, view_range: [1, 50] }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/re/__init__.py, view_range: [1, 50] }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h, view_range: [1, 50] }
+
+  - name: impl-p0-lock-ordering # sorted lock order prevents deadlocks
+    calls:
+      - tool_name: terminal
+        action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
+      - tool_name: terminal
+        action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
+      - tool_name: terminal
+        action: { command: "cat Lib/asyncio/tasks.py | head -3 && cat Lib/asyncio/runners.py | head -3" }
+      - tool_name: terminal
+        action: { command: "cat Lib/asyncio/runners.py | head -3 && cat Lib/asyncio/tasks.py | head -3" }
+
+  - name: impl-p0-lock-contention # slow holder, fast waiters
+    calls:
+      - tool_name: terminal
+        action: { command: "sleep 0.3 && echo SLOW_DONE" }
+      - tool_name: terminal
+        action: { command: "echo FAST_1" }
+      - tool_name: terminal
+        action: { command: "echo FAST_2" }
+      - tool_name: terminal
+        action: { command: "echo FAST_3" }
+
+  # ── impl-p0: get_resource_keys() on ToolDefinition ────────────────
+
+  - name: impl-p0-resource-keys-readonly # readOnlyHint=True skips locking
+    calls:
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/asyncio" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+      - tool_name: read_file
+        action: { file_path: "Lib/pathlib/__init__.py" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+
+  - name: impl-p0-resource-keys-fallback # default [] -> tool-wide mutex
+    calls:
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+
+  # ── impl-p0: wire locking into ParallelToolExecutor ────────────────
+
+  - name: impl-p0-executor-three-paths # all 3 code paths in one chain
+    calls:
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: terminal
+        action: { command: "echo PATH_2_TERMINAL" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: glob
+        action: { pattern: "Objects/*.c" }
+      - tool_name: grep
+        action: { pattern: "PyDict_SetItem", include: "*.c" }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+
+  - name: impl-p0-executor-no-lock-overhead # pure readonly, zero lock cost
+    calls:
+      - tool_name: glob
+        action: { pattern: "**/*.py" }
+      - tool_name: glob
+        action: { pattern: "**/*.c" }
+      - tool_name: glob
+        action: { pattern: "**/*.h" }
+      - tool_name: grep
+        action: { pattern: "import os", include: "*.py" }
+      - tool_name: grep
+        action: { pattern: "#include", include: "*.c" }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib" }
+      - tool_name: list_directory
+        action: { dir_path: "Include" }
+
+  # ── impl-p1: get_resource_keys() for file tools ────────────────────
+
+  - name: impl-p1-file-same-path-cross-tool # same file, different tools -> serialize
+    calls:
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+
+  - name: impl-p1-file-different-paths # different files -> parallelize
+    calls:
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/pathlib/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Include/dictobject.h }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/json/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/re/__init__.py }
+
+  - name: impl-p1-file-cross-tool-conflict # terminal + file_editor on same file
+    calls:
+      - tool_name: terminal
+        action: { command: "wc -l Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
+      - tool_name: terminal
+        action: { command: "head -10 Lib/asyncio/tasks.py" }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py, view_range: [1, 10] }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: terminal
+        action: { command: "cat Lib/asyncio/tasks.py | wc -c" }
+
+  - name: impl-p1-file-planning-editor # planning_file_editor shares per-file locking
+    calls:
+      - tool_name: planning_file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: planning_file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/runners.py }
+
+  # ── impl-p1: get_resource_keys() for terminal/browser ──────────────
+
+  - name: impl-p1-terminal-session-serialize # terminal:session serializes all
+    calls:
+      - tool_name: terminal
+        action: { command: "export PTE_SESSION=alpha && echo $PTE_SESSION" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_SESSION:-unset}" }
+      - tool_name: terminal
+        action: { command: "cd Lib && pwd" }
+      - tool_name: terminal
+        action: { command: "pwd" }
+      - tool_name: terminal
+        action: { command: "export PTE_SESSION=beta && echo $PTE_SESSION" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_SESSION:-unset}" }
+
+  - name: impl-p1-terminal-no-block-readonly # terminal lock doesn't block readonly
+    calls:
+      - tool_name: terminal
+        action: { command: "sleep 0.2 && echo SLOW_TERMINAL" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: grep
+        action: { pattern: "class Task", include: "*.py" }
+      - tool_name: read_file
+        action: { file_path: "Include/dictobject.h" }
+      - tool_name: terminal
+        action: { command: "echo FAST_TERMINAL" }
+      - tool_name: list_directory
+        action: { dir_path: "Objects" }
+
+  # - name: impl-p1-browser-session-serialize  # SKIPPED — SDK bug
+  #   calls:
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://example.com" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://httpbin.org/get" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: browser_get_content
+  #       action: {}
+
+  # ── impl-p1: mutex for task_tracker ────────────────────────────────
+
+  - name: impl-p1-task-tracker-concurrent # 8x concurrent views
+    calls:
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+
+  - name: impl-p1-task-tracker-with-readonly # mutex doesn't block readonly
+    calls:
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: grep
+        action: { pattern: "def main", include: "*.py" }
+      - tool_name: task_tracker
+        action: { command: "view" }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+
+  # ── impl-p3: tmux pane pool ────────────────────────────────────────
+
+  - name: impl-p3-pane-pool-parallel # independent commands across panes
+    calls:
+      - tool_name: terminal
+        action: { command: "echo PANE_A && sleep 0.1 && echo PANE_A_DONE" }
+      - tool_name: terminal
+        action: { command: "echo PANE_B && sleep 0.1 && echo PANE_B_DONE" }
+      - tool_name: terminal
+        action: { command: "echo PANE_C && sleep 0.1 && echo PANE_C_DONE" }
+      - tool_name: terminal
+        action: { command: "echo PANE_D && sleep 0.1 && echo PANE_D_DONE" }
+
+  - name: impl-p3-pane-pool-cwd # CWD isolation between panes
+    calls:
+      - tool_name: terminal
+        action: { command: "cd Lib/asyncio && pwd" }
+      - tool_name: terminal
+        action: { command: "cd Objects && pwd" }
+      - tool_name: terminal
+        action: { command: "pwd" }
+      - tool_name: terminal
+        action: { command: "cd Include && pwd" }
+      - tool_name: terminal
+        action: { command: "pwd" }
+      - tool_name: terminal
+        action: { command: "cd Lib/test && pwd" }
+
+  - name: impl-p3-pane-pool-env # env var isolation between panes
+    calls:
+      - tool_name: terminal
+        action: { command: "export PTE_PANE=one && echo $PTE_PANE" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_PANE:-unset}" }
+      - tool_name: terminal
+        action: { command: "export PTE_PANE=two && echo $PTE_PANE" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_PANE:-unset}" }
+      - tool_name: terminal
+        action: { command: "export PTE_PANE=three && echo $PTE_PANE" }
+      - tool_name: terminal
+        action: { command: "echo ${PTE_PANE:-unset}" }
+
+  # ── impl-p3: browser multi-context (SKIPPED — SDK bug) ────────────
+
+  # - name: impl-p3-browser-multi-context
+  #   calls:
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://example.com" }
+  #     - tool_name: browser_navigate
+  #       action: { url: "https://httpbin.org/get" }
+  #     - tool_name: browser_get_state
+  #       action: {}
+  #     - tool_name: browser_get_content
+  #       action: {}
