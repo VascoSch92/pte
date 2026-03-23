@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from enum import StrEnum
 from itertools import zip_longest
 from pathlib import Path
 from typing import Any
@@ -85,50 +86,68 @@ def _is_tmux_available() -> bool:
         return False
 
 
-_TOOL_SPECS: dict[str, _ToolSpec] = {
-    "terminal_subprocess": _ToolSpec(
+class ToolName(StrEnum):
+    TERMINAL_SUBPROCESS = "terminal_subprocess"
+    TERMINAL_TMUX = "terminal_tmux"
+    FILE_EDITOR = "file_editor"
+    GLOB = "glob"
+    GREP = "grep"
+    APPLY_PATCH = "apply_patch"
+    TASK_TRACKER = "task_tracker"
+    READ_FILE = "read_file"
+    WRITE_FILE = "write_file"
+    EDIT = "edit"
+    LIST_DIRECTORY = "list_directory"
+    PLANNING_FILE_EDITOR = "planning_file_editor"
+
+
+_TOOL_SPECS: dict[ToolName, _ToolSpec] = {
+    ToolName.TERMINAL_SUBPROCESS: _ToolSpec(
         "openhands.tools.terminal",
         executor_kwarg="working_dir",
         extra_kwargs=(("terminal_type", "subprocess"),),
     ),
-    "terminal_tmux": _ToolSpec(
+    ToolName.TERMINAL_TMUX: _ToolSpec(
         "openhands.tools.terminal",
         executor_kwarg="working_dir",
         extra_kwargs=(("terminal_type", "tmux"),),
     ),
-    "file_editor": _ToolSpec("openhands.tools.file_editor"),
-    "glob": _ToolSpec(
+    ToolName.FILE_EDITOR: _ToolSpec("openhands.tools.file_editor"),
+    ToolName.GLOB: _ToolSpec(
         "openhands.tools.glob", executor_kwarg="working_dir", readonly=True
     ),
-    "grep": _ToolSpec(
+    ToolName.GREP: _ToolSpec(
         "openhands.tools.grep", executor_kwarg="working_dir", readonly=True
     ),
-    "apply_patch": _ToolSpec("openhands.tools.apply_patch", impl="definition"),
-    "task_tracker": _ToolSpec(
+    ToolName.APPLY_PATCH: _ToolSpec("openhands.tools.apply_patch", impl="definition"),
+    ToolName.TASK_TRACKER: _ToolSpec(
         "openhands.tools.task_tracker", impl="definition", executor_kwarg="save_dir"
     ),
-    "read_file": _ToolSpec("openhands.tools.gemini.read_file", readonly=True),
-    "write_file": _ToolSpec("openhands.tools.gemini.write_file"),
-    "edit": _ToolSpec("openhands.tools.gemini.edit"),
-    "list_directory": _ToolSpec("openhands.tools.gemini.list_directory", readonly=True),
-    "planning_file_editor": _ToolSpec("openhands.tools.planning_file_editor"),
+    ToolName.READ_FILE: _ToolSpec("openhands.tools.gemini.read_file", readonly=True),
+    ToolName.WRITE_FILE: _ToolSpec("openhands.tools.gemini.write_file"),
+    ToolName.EDIT: _ToolSpec("openhands.tools.gemini.edit"),
+    ToolName.LIST_DIRECTORY: _ToolSpec(
+        "openhands.tools.gemini.list_directory", readonly=True
+    ),
+    ToolName.PLANNING_FILE_EDITOR: _ToolSpec("openhands.tools.planning_file_editor"),
 }
 
-_BASE_CLASSES = {
-    "Action",
-    "Observation",
-    "Tool",
-    "ToolDefinition",
-    "Executor",
-    "ToolExecutor",
-}
+
+class BaseClass(StrEnum):
+    ACTION = "Action"
+    OBSERVATION = "Observation"
+    TOOL = "Tool"
+    TOOL_DEFINITION = "ToolDefinition"
+    EXECUTOR = "Executor"
+    TOOL_EXECUTOR = "ToolExecutor"
 
 
 def _find_class(module: Any, suffix: str) -> type:
     """Find the most specific class in module whose name ends with suffix."""
     candidates = []
+    base_names = {e.value for e in BaseClass}
     for name in dir(module):
-        if name in _BASE_CLASSES:
+        if name in base_names:
             continue
         obj = getattr(module, name)
         if isinstance(obj, type) and name.endswith(suffix):
@@ -162,7 +181,7 @@ def _create_tool(tool_name: str, working_dir: str) -> Any:
 
     kwargs: dict[str, Any] = {spec.executor_kwarg: working_dir}
     kwargs.update(dict(spec.extra_kwargs))
-    if tool_name == "planning_file_editor":
+    if tool_name == ToolName.PLANNING_FILE_EDITOR:
         kwargs["plan_path"] = os.path.join(working_dir, "PLAN.md")
 
     from openhands.sdk.tool.tool import ToolAnnotations
@@ -184,7 +203,7 @@ def _filter_chains_by_availability(
 
     filtered = []
     for chain in chains:
-        needs_tmux = any(s.tool_name == "terminal_tmux" for s in chain.calls)
+        needs_tmux = any(s.tool_name == ToolName.TERMINAL_TMUX for s in chain.calls)
         if needs_tmux:
             if tmux_available is None:
                 tmux_available = _is_tmux_available()
