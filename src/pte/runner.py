@@ -5,6 +5,7 @@ import logging
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import StrEnum
 from itertools import zip_longest
@@ -486,16 +487,12 @@ def run_benchmark(
 
     # Cleanup shared resources
     if _browser_executor is not None:
-        try:
+        with suppress(Exception):
             _browser_executor.close()
-        except Exception:
-            pass
         _browser_executor = None
     if _mcp_client is not None:
-        try:
+        with suppress(Exception):
             _mcp_client.sync_close()
-        except Exception:
-            pass
         _mcp_client = None
 
     console.print(
