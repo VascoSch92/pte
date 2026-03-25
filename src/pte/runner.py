@@ -2,6 +2,7 @@
 
 import importlib
 import logging
+import re
 import subprocess
 import sys
 import time
@@ -372,8 +373,24 @@ class ChainRunResult:
         return len({tuple(a) for a in self.run_answers})
 
 
+# Patterns that vary between runs but don't indicate a real mismatch.
+_NORMALIZE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r'"X-Amzn-Trace-Id":\s*"[^"]*"'), '"X-Amzn-Trace-Id": "<normalized>"'),
+]
+
+
+def _normalize(text: str) -> str:
+    """Strip known non-deterministic fields before comparison."""
+    for pattern, replacement in _NORMALIZE_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 def _count_mismatches(baseline: list[str], current: list[str]) -> int:
-    return sum(a != b for a, b in zip_longest(baseline, current, fillvalue=""))
+    return sum(
+        _normalize(a) != _normalize(b)
+        for a, b in zip_longest(baseline, current, fillvalue="")
+    )
 
 
 # ── benchmark execution ──────────────────────────────────────────────
@@ -635,7 +652,11 @@ def save_results(
                         tool = r.tool_names[i] if i < len(r.tool_names) else "?"
                         f.write(f"=== Call {i}: {tool} ===\n{answer}\n\n")
 
-                if baseline and answers != baseline:
+                normalized_match = all(
+                    _normalize(a) == _normalize(b)
+                    for a, b in zip_longest(baseline, answers, fillvalue="")
+                )
+                if baseline and not normalized_match:
                     diff_file = (
                         chain_dir / f"diff_workers_{level}_run_{run_idx + 1}.txt"
                     )
@@ -644,7 +665,7 @@ def save_results(
                         for i in range(max(len(baseline), len(answers))):
                             bl = baseline[i] if i < len(baseline) else "<MISSING>"
                             cur = answers[i] if i < len(answers) else "<MISSING>"
-                            if bl != cur:
+                            if _normalize(bl) != _normalize(cur):
                                 has_diffs = True
                                 tool = r.tool_names[i] if i < len(r.tool_names) else "?"
                                 f.write(f"=== MISMATCH Call {i}: {tool} ===\n")
@@ -661,3 +682,154 @@ def save_results(
                             diff_file.unlink()
 
     console.print(f"\n[green]Results saved to {save_path}[/green]")
+
+
+# ── comparison ────────────────────────────────────────────────────────
+
+
+@dataclass(slots=True)
+class _SummaryRow:
+    """A single parsed row from a summary.txt table."""
+
+    chain: str
+    workers: int
+    wall: float
+    speedup: float
+    mem_mb: float
+    errors: int
+    unique: str  # e.g. "1/3"
+
+
+def _parse_summary(path: str | Path) -> list[_SummaryRow]:
+    """Parse a Rich-rendered summary.txt into structured rows."""
+    rows: list[_SummaryRow] = []
+    text = Path(path).read_text()
+    for line in text.splitlines():
+        # Data rows start with │ and contain multiple │-separated cells
+        if not line.startswith("│"):
+            continue
+        # Strip ANSI codes that Rich may embed
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", line)
+        # Also strip Rich markup tags like [red]...[/red]
+        clean = re.sub(r"\[/?[a-z]+\]", "", clean)
+        cells = [c.strip() for c in clean.split("│")]
+        # Filter empty cells from leading/trailing │
+        cells = [c for c in cells if c]
+        if len(cells) < 7:
+            continue
+        try:
+            rows.append(
+                _SummaryRow(
+                    chain=cells[0],
+                    workers=int(cells[1]),
+                    wall=float(cells[2]),
+                    speedup=float(cells[3].rstrip("x")),
+                    mem_mb=float(cells[4]),
+                    errors=int(cells[5]),
+                    unique=cells[6],
+                )
+            )
+        except (ValueError, IndexError):
+            continue
+    return rows
+
+
+def _delta_str(val: float, fmt: str = "+.2f", invert: bool = False) -> str:
+    """Format a delta value with sign and optional color.
+
+    *invert*: when True, positive = bad (red), negative = good (green).
+    Default: positive = good (green), negative = bad (red).
+    """
+    if val == 0:
+        return f"[dim]{val:{fmt}}[/dim]"
+    if invert:
+        color = "red" if val > 0 else "green"
+    else:
+        color = "green" if val > 0 else "red"
+    return f"[{color}]{val:{fmt}}[/{color}]"
+
+
+def compare_summaries(
+    baseline_path: str | Path,
+    compare_path: str | Path,
+    output: Console | None = None,
+) -> None:
+    """Print a delta table comparing two summary.txt benchmark runs.
+
+    The *baseline* is typically the run without the feature (e.g. main)
+    and *compare* is the run with the feature (e.g. lock-manager branch).
+    """
+    out = output or console
+
+    baseline_rows = _parse_summary(baseline_path)
+    compare_rows = _parse_summary(compare_path)
+
+    # Index by (chain, workers)
+    baseline_idx = {(r.chain, r.workers): r for r in baseline_rows}
+    compare_idx = {(r.chain, r.workers): r for r in compare_rows}
+
+    # Use the compare run's ordering, fall back to intersection
+    keys = list(compare_idx.keys())
+    common = [k for k in keys if k in baseline_idx]
+    if not common:
+        out.print(
+            "[red]No matching (chain, workers) pairs found between the two summaries.[/red]"
+        )
+        return
+
+    table = Table(title="Comparison (B → A)", min_width=90)
+    table.add_column("Chain", style="magenta", no_wrap=True)
+    table.add_column("W", justify="right", style="cyan")
+    table.add_column("Δ Speedup", justify="right", min_width=10)
+    table.add_column("Δ Mem (MB)", justify="right", min_width=10)
+    table.add_column("Δ Errors", justify="right", min_width=9)
+    table.add_column("Unique B", justify="right", min_width=8)
+    table.add_column("Unique A", justify="right", min_width=8)
+
+    total_err_baseline = 0
+    total_err_compare = 0
+    prev_chain = None
+
+    for chain, workers in common:
+        b = baseline_idx[(chain, workers)]
+        a = compare_idx[(chain, workers)]
+
+        if prev_chain is not None and chain != prev_chain:
+            table.add_section()
+        prev_chain = chain
+
+        d_speedup = a.speedup - b.speedup
+        d_mem = a.mem_mb - b.mem_mb
+        d_errors = a.errors - b.errors
+
+        total_err_baseline += b.errors
+        total_err_compare += a.errors
+
+        unique_b = (
+            b.unique if b.unique.startswith("1/") else f"[yellow]{b.unique}[/yellow]"
+        )
+        unique_a = (
+            a.unique if a.unique.startswith("1/") else f"[yellow]{a.unique}[/yellow]"
+        )
+
+        table.add_row(
+            chain,
+            str(workers),
+            _delta_str(d_speedup, "+.2f"),
+            _delta_str(d_mem, "+.1f", invert=True),
+            _delta_str(d_errors, "+d", invert=True),
+            unique_b,
+            unique_a,
+        )
+
+    out.print()
+    out.print(table)
+    out.print(
+        "\n[dim]Δ = compare − baseline. "
+        "Speedup: [green]+[/green] = faster. "
+        "Mem/Errors: [green]−[/green] = better.[/dim]"
+    )
+    out.print(
+        f"[bold]Total errors:[/bold] {total_err_baseline} → {total_err_compare} "
+        f"({_delta_str(total_err_compare - total_err_baseline, '+d', invert=True)})"
+    )

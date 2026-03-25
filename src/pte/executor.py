@@ -1,5 +1,6 @@
 """Benchmark executor: drives the SDK's _ActionBatch and ParallelToolExecutor."""
 
+import inspect
 import json
 import logging
 import time
@@ -118,12 +119,16 @@ class BenchmarkExecutor:
                     answers_by_id[ae.id] = f"ERROR: {ev.error}"
             return events
 
-        _ActionBatch.prepare(
+        prepare_kwargs: dict[str, Any] = dict(
             action_events=action_events,
             state=self._state,
             executor=self._executor,
             tool_runner=tool_runner,
         )
+        if "tools" in inspect.signature(_ActionBatch.prepare).parameters:
+            prepare_kwargs["tools"] = tools_map
+
+        _ActionBatch.prepare(**prepare_kwargs)
         wall = time.perf_counter() - batch_start
 
         ordered = [answers_by_id.get(ae.id, "NO_ANSWER") for ae in action_events]

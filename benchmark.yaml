@@ -225,13 +225,13 @@ chains:
   - name: tool-mcp-fetch
     calls:
       - tool_name: mcp_fetch
-        action: { url: "https://example.com" }
+        action: { url: "https://httpbin.org/robots.txt" }
       - tool_name: mcp_fetch
-        action: { url: "https://httpbin.org/get" }
-      - tool_name: mcp_fetch
-        action: { url: "https://example.com" }
+        action: { url: "https://httpbin.org/html" }
       - tool_name: mcp_fetch
         action: { url: "https://httpbin.org/ip" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/robots.txt" }
 
   # ── single-tool: browser (SKIPPED — SDK bug in get_state()) ────────
 
@@ -419,13 +419,13 @@ chains:
   - name: cross-mcp-native
     calls:
       - tool_name: mcp_fetch
-        action: { url: "https://example.com" }
+        action: { url: "https://httpbin.org/robots.txt" }
       - tool_name: grep
         action: { pattern: "def compile", include: "*.py" }
       - tool_name: glob
         action: { pattern: "Lib/asyncio/*.py" }
       - tool_name: mcp_fetch
-        action: { url: "https://httpbin.org/get" }
+        action: { url: "https://httpbin.org/html" }
 
   # - name: cross-browser-readonly  # SKIPPED — SDK browser bug
   #   calls:
@@ -925,7 +925,7 @@ chains:
   - name: write-conflict-append-subprocess # concurrent appends to same file
     calls:
       - tool_name: terminal_subprocess
-        action: { command: "echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+        action: { command: "rm -f /tmp/pte_append.txt && echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
       - tool_name: terminal_subprocess
         action: { command: "echo 'LINE_2' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
       - tool_name: terminal_subprocess
@@ -936,7 +936,7 @@ chains:
   - name: write-conflict-append-tmux
     calls:
       - tool_name: terminal_tmux
-        action: { command: "echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
+        action: { command: "rm -f /tmp/pte_append.txt && echo 'LINE_1' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
       - tool_name: terminal_tmux
         action: { command: "echo 'LINE_2' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
       - tool_name: terminal_tmux

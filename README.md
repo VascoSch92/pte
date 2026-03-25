@@ -23,6 +23,7 @@ uv run pte benchmark.yaml --chain                   # list chains
 | `--branch` | SDK branch to checkout (default: `main`) |
 | `--chain [NAME ...]` | Run named chains or prefix groups (`tool`, `cross`, `impl`, `impl-p0`, ...) |
 | `--save [DIR]` | Save answers + diffs + summary (default: `results/`) |
+| `--compare B A` | Compare two `summary.txt` files and print deltas |
 | `--skip-install` | Skip SDK clone/checkout |
 | `--log-level` | `DEBUG` / `INFO` / `WARNING` / `ERROR` |
 
@@ -86,6 +87,37 @@ results/
       diff_workers_2_run_1.txt
     ...
 ```
+
+## Comparing runs
+
+Use `--compare` to diff two `summary.txt` files side by side:
+
+```bash
+uv run pte --compare results/run_baseline/summary.txt results/run_feature/summary.txt
+```
+
+This prints a delta table showing per-chain, per-worker-level changes:
+
+```
+                                  Comparison (B → A)
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Chain                          ┃ W ┃  Δ Speedup ┃ Δ Mem (MB) ┃  Δ Errors ┃ Unique B ┃ Unique A ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ lock-same-resource-subprocess  │ 4 │      +0.93 │       +0.0 │       -12 │      3/3 │      1/3 │
+└────────────────────────────────┴───┴────────────┴────────────┴───────────┴──────────┴──────────┘
+
+Δ = compare − baseline. Speedup: + = faster. Mem/Errors: − = better.
+Total errors: 195 → 2 (-193)
+```
+
+| Column | Meaning |
+|---|---|
+| **Δ Speedup** | Change in speedup factor (green = faster) |
+| **Δ Mem (MB)** | Change in memory usage (green = less) |
+| **Δ Errors** | Change in error count (green = fewer) |
+| **Unique B/A** | Determinism before and after — `1/N` = deterministic |
+
+Only chains present in both summaries are compared.
 
 ## How it works
 

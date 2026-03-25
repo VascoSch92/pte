@@ -76,7 +76,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Benchmark parallel tool execution in OpenHands software-agent-sdk",
     )
-    parser.add_argument("config", help="Path to YAML benchmark config")
+    parser.add_argument("config", nargs="?", help="Path to YAML benchmark config")
     parser.add_argument(
         "--branch", default=None, help="SDK branch (default: from YAML)"
     )
@@ -100,6 +100,12 @@ def main() -> None:
         help="Skip SDK clone/checkout (use existing)",
     )
     parser.add_argument(
+        "--compare",
+        nargs=2,
+        metavar=("BASELINE", "COMPARE"),
+        help="Compare two summary.txt files and print deltas",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -110,6 +116,15 @@ def main() -> None:
         level=getattr(logging, args.log_level),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+
+    if args.compare:
+        from pte.runner import compare_summaries
+
+        compare_summaries(args.compare[0], args.compare[1])
+        return
+
+    if not args.config:
+        parser.error("config is required unless --compare is used")
 
     from pte.config import load_config
 
