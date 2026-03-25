@@ -944,6 +944,20 @@ chains:
       - tool_name: terminal_tmux
         action: { command: "echo 'LINE_4' >> /tmp/pte_append.txt && wc -l /tmp/pte_append.txt" }
 
+  # Exposes the tool:<name> fallback bug (see SDK PR #2560 comment):
+  # three different tool names touch the same file, so the fallback gives
+  # each a different lock and they race freely at w>1.
+  - name: write-conflict-cross-tool-race
+    calls:
+      - tool_name: terminal_subprocess
+        action: { command: "rm -f /tmp/pte_cross_race.txt && echo 'STEP_1' > /tmp/pte_cross_race.txt && cat /tmp/pte_cross_race.txt" }
+      - tool_name: read_file
+        action: { file_path: "/tmp/pte_cross_race.txt" }
+      - tool_name: write_file
+        action: { file_path: "/tmp/pte_cross_race.txt", content: "STEP_3\n" }
+      - tool_name: terminal_subprocess
+        action: { command: "cat /tmp/pte_cross_race.txt" }
+
   - name: write-conflict-cross-tool-same-file # terminal + write_file + file_editor on same file
     calls:
       - tool_name: terminal_subprocess
