@@ -120,6 +120,38 @@ chains:
         action: { command: view, path: Lib/asyncio/tasks.py }
       - tool_name: file_editor
         action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/asyncio/tasks.py }
 
   - name: tool-file-editor-multi
     calls:
@@ -135,23 +167,79 @@ chains:
         action: { command: view, path: Lib/json/__init__.py }
       - tool_name: file_editor
         action: { command: view, path: Lib/re/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/typing.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/collections/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/importlib/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/unittest/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/logging/__init__.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/argparse.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/dataclasses.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/functools.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/inspect.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/os.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/subprocess.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/socket.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/threading.py }
+      - tool_name: file_editor
+        action: { command: view, path: Lib/contextlib.py }
 
   # ── single-tool: glob (SAFE) ───────────────────────────────────────
 
   - name: tool-glob
     calls:
       - tool_name: glob
-        action: { pattern: "Lib/asyncio/*.py" }
+        action: { pattern: "**/*.py" }
       - tool_name: glob
-        action: { pattern: "Objects/*.c" }
+        action: { pattern: "**/*.c" }
       - tool_name: glob
-        action: { pattern: "Include/*.h" }
+        action: { pattern: "**/*.h" }
       - tool_name: glob
-        action: { pattern: "Lib/test/test_*.py" }
+        action: { pattern: "**/*test*" }
       - tool_name: glob
-        action: { pattern: "Modules/*.c" }
+        action: { pattern: "**/*.rst" }
       - tool_name: glob
         action: { pattern: "**/*.cfg" }
+      - tool_name: glob
+        action: { pattern: "**/*.txt" }
+      - tool_name: glob
+        action: { pattern: "**/*.ini" }
+      - tool_name: glob
+        action: { pattern: "**/__init__.py" }
+      - tool_name: glob
+        action: { pattern: "**/*.pyi" }
+      - tool_name: glob
+        action: { pattern: "Lib/**/*.py" }
+      - tool_name: glob
+        action: { pattern: "Lib/test/**/*.py" }
+      - tool_name: glob
+        action: { pattern: "Include/**/*.h" }
+      - tool_name: glob
+        action: { pattern: "Modules/**/*.c" }
+      - tool_name: glob
+        action: { pattern: "Objects/**/*.c" }
+      - tool_name: glob
+        action: { pattern: "Python/**/*.c" }
+      - tool_name: glob
+        action: { pattern: "Doc/**/*.rst" }
+      - tool_name: glob
+        action: { pattern: "Tools/**/*" }
+      - tool_name: glob
+        action: { pattern: "**/*" }
+      - tool_name: glob
+        action: { pattern: "**/*.py*" }
 
   # ── single-tool: grep (SAFE) ───────────────────────────────────────
 
@@ -968,6 +1056,173 @@ chains:
         action: { command: "echo 'TERMINAL_OVERWRITE' > /tmp/pte_cross_write.txt && cat /tmp/pte_cross_write.txt" }
       - tool_name: write_file
         action: { file_path: "/tmp/pte_cross_write.txt", content: "WRITE_FILE_FINAL\n" }
+
+  # ── stress-mcp: parallel MCP fetch stress tests ───────────────────
+
+  # Stress 1: 8 independent fetches to distinct httpbin endpoints — heavy output
+  - name: stress-mcp-fetch-flood
+    calls:
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/html" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/robots.txt" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/ip" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/user-agent" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/headers" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/encoding/utf8" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/json" }
+
+  # Stress 2: same URL repeated — tests MCP server under identical concurrent requests
+  - name: stress-mcp-fetch-same-url
+    calls:
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=1" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=2" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=3" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=4" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=5" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=6" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=7" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get?q=8" }
+
+  # Stress 3: MCP fetch mixed with native read-only tools
+  - name: stress-mcp-mixed-native
+    calls:
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/html" }
+      - tool_name: glob
+        action: { pattern: "Lib/asyncio/*.py" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/get" }
+      - tool_name: grep
+        action: { pattern: "def compile", include: "*.py" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/json" }
+      - tool_name: read_file
+        action: { file_path: "Lib/asyncio/tasks.py" }
+      - tool_name: mcp_fetch
+        action: { url: "https://httpbin.org/encoding/utf8" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/asyncio" }
+
+  # ── stress-tmux: independent, output-heavy stress tests ────────────
+
+  # Stress 1: cat large distinct files — heavy stdout capture per pane
+  - name: stress-tmux-heavy-cat
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/tasks.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/base_events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/streams.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/futures.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/locks.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/queues.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/runners.py" }
+
+  # Stress 2: grep different patterns in different dirs — I/O + output heavy
+  - name: stress-tmux-grep-flood
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyObject' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'Py_DECREF' Include/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'def test_' Lib/test/test_asyncio/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn '#include' Modules/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyErr_SetString' Python/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'class ' Lib/asyncio/" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyDict' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'import sys' Lib/email/" }
+
+  # Stress 3: seq flood — 5000 lines each, distinct ranges, pure output pressure
+  - name: stress-tmux-seq-flood
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "seq 1 5000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 5001 10000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 10001 15000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 15001 20000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 20001 25000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 25001 30000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 30001 35000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 35001 40000" }
+
+  # ── speed-tmux: latency and scaling benchmarks ───────────────────
+
+  # Speed 1: parallel scaling — 8 identical sleeps, should show near-linear
+  #          speedup from w=1 (1.6s) → w=8 (0.2s)
+  - name: speed-tmux-parallel-scaling
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_1" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_2" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_3" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_4" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_5" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_6" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_7" }
+      - tool_name: terminal_tmux
+        action: { command: "sleep 0.2 && echo DONE_8" }
+
+  # Speed 2: real-world git ops — independent read-only git commands
+  - name: speed-tmux-git-ops
+    calls:
+      - tool_name: terminal_tmux
+        action: { command: "git log --oneline -50" }
+      - tool_name: terminal_tmux
+        action: { command: "git log --stat -10" }
+      - tool_name: terminal_tmux
+        action: { command: "git shortlog -sn | head -20" }
+      - tool_name: terminal_tmux
+        action: { command: "git log --format='%H %an %s' -50" }
+      - tool_name: terminal_tmux
+        action: { command: "git log --name-only -10" }
+      - tool_name: terminal_tmux
+        action: { command: "git diff --stat HEAD~1" }
+      - tool_name: terminal_tmux
+        action: { command: "git log --oneline --graph -30" }
+      - tool_name: terminal_tmux
+        action: { command: "git show --stat HEAD" }
 
   # ── impl-p3: browser multi-context (SKIPPED — SDK bug) ────────────
 

@@ -10,7 +10,47 @@ from pathlib import Path
 
 from rich.console import Console
 
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore[no-redef]
+
 console = Console()
+
+
+def _install_sdk_deps(sdk_dir: Path) -> None:
+    """Read each SDK sub-package's pyproject.toml and install its dependencies.
+
+    We deliberately do NOT install the SDK packages themselves (no ``-e``),
+    because editable installs register finders in site-packages that shadow
+    the explicit ``sys.path`` entries we add.  Only their *dependencies*
+    (pydantic, litellm, …) need to be present in the venv.
+    """
+    all_deps: list[str] = []
+    for sub in ("openhands-sdk", "openhands-tools"):
+        toml_path = sdk_dir / sub / "pyproject.toml"
+        if not toml_path.exists():
+            continue
+        with open(toml_path, "rb") as f:
+            meta = tomllib.load(f)
+        deps = meta.get("project", {}).get("dependencies", [])
+        for dep in deps:
+            # Skip self-referencing dependency (openhands-tools depends on openhands-sdk)
+            if dep.strip().lower().startswith("openhands-"):
+                continue
+            all_deps.append(dep)
+
+    if not all_deps:
+        return
+
+    result = subprocess.run(
+        ["uv", "pip", "install"] + all_deps,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]Failed to install SDK dependencies:[/red]\n{result.stderr}")
+        sys.exit(1)
 
 
 def _setup_sdk(sdk_repo: str, branch: str, base_dir: str, skip: bool = False) -> None:
@@ -49,11 +89,15 @@ def _setup_sdk(sdk_repo: str, branch: str, base_dir: str, skip: bool = False) ->
                 console.print(f"[red]git clone failed:[/red]\n{result.stderr}")
                 sys.exit(1)
 
-    # Add SDK packages to sys.path
+    # Add SDK packages to sys.path (before site-packages so branch code wins)
     for sub in ("openhands-sdk", "openhands-tools"):
         p = sdk_dir / sub
         if p.is_dir() and str(p) not in sys.path:
             sys.path.insert(0, str(p))
+
+    # Install only the third-party dependencies, not the SDK packages themselves
+    if not skip:
+        _install_sdk_deps(sdk_dir)
 
     try:
         import openhands.sdk  # noqa: F401
