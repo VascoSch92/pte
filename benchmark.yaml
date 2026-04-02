@@ -245,18 +245,50 @@ chains:
 
   - name: tool-grep
     calls:
+      # no file filter — scan everything in CPython
       - tool_name: grep
-        action: { pattern: "def compile", include: "*.py" }
+        action: { pattern: "." }
       - tool_name: grep
-        action: { pattern: "PyObject_Call", include: "*.c" }
+        action: { pattern: "self" }
       - tool_name: grep
-        action: { pattern: "#include <Python", include: "*.h" }
+        action: { pattern: "return" }
       - tool_name: grep
-        action: { pattern: "class Task", include: "*.py" }
+        action: { pattern: "NULL" }
+      # complex regex — backtracking-heavy patterns
       - tool_name: grep
-        action: { pattern: "PyDict_SetItem", include: "*.c" }
+        action: { pattern: "def\\s+[a-z_][a-z_0-9]*\\s*\\(.*self.*\\)\\s*(->[^:]+)?:" }
       - tool_name: grep
-        action: { pattern: "import asyncio", include: "*.py" }
+        action: { pattern: "(Py_INCREF|Py_DECREF|Py_XINCREF|Py_XDECREF)\\s*\\(" }
+      - tool_name: grep
+        action: { pattern: "class\\s+[A-Z][a-zA-Z0-9_]*\\s*\\([^)]*\\)\\s*:" }
+      - tool_name: grep
+        action: { pattern: "raise\\s+[A-Z][a-zA-Z]*\\s*\\(.*\\)" }
+      - tool_name: grep
+        action: { pattern: "#\\s*(if|ifdef|ifndef|elif|else|endif|define|undef|include)" }
+      - tool_name: grep
+        action: { pattern: "import\\s+[a-z_][a-z_0-9]*(\\.[a-z_][a-z_0-9]*)+" }
+      # alternations across all files
+      - tool_name: grep
+        action: { pattern: "(TODO|FIXME|HACK|XXX|BUG|WARN)" }
+      - tool_name: grep
+        action: { pattern: "(async\\s+def|await\\s+|yield\\s+from)" }
+      - tool_name: grep
+        action: { pattern: "(TypeError|ValueError|RuntimeError|KeyError|AttributeError|OSError)" }
+      - tool_name: grep
+        action: { pattern: "(PyDict_|PyList_|PyTuple_|PySet_|PyLong_|PyFloat_|PyUnicode_)" }
+      # wide scans with common tokens
+      - tool_name: grep
+        action: { pattern: "\\bif\\b.*\\band\\b.*\\bor\\b" }
+      - tool_name: grep
+        action: { pattern: "for\\s+[a-z_]+\\s*,\\s*[a-z_]+\\s+in\\s+" }
+      - tool_name: grep
+        action: { pattern: "@(staticmethod|classmethod|property|abstractmethod)" }
+      - tool_name: grep
+        action: { pattern: "def\\s+(test_|_test)[a-z_0-9]*" }
+      - tool_name: grep
+        action: { pattern: "\\bwhile\\s+(True|1)\\b" }
+      - tool_name: grep
+        action: { pattern: "with\\s+open\\s*\\(" }
 
   # ── single-tool: read_file / list_directory — Gemini (SAFE) ────────
 
@@ -273,14 +305,48 @@ chains:
 
   - name: tool-list-directory
     calls:
+      # biggest directories in CPython — hundreds/thousands of entries
       - tool_name: list_directory
-        action: { dir_path: "Lib/asyncio" }
+        action: { dir_path: "Lib/test" }
       - tool_name: list_directory
-        action: { dir_path: "Objects" }
+        action: { dir_path: "Lib" }
+      - tool_name: list_directory
+        action: { dir_path: "Modules" }
+      - tool_name: list_directory
+        action: { dir_path: "Doc" }
+      - tool_name: list_directory
+        action: { dir_path: "Include" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/test/test_email" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/test/test_importlib" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/idlelib" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/tkinter" }
+      - tool_name: list_directory
+        action: { dir_path: "Misc" }
+      # repeat the heaviest ones to amplify pressure
+      - tool_name: list_directory
+        action: { dir_path: "Lib/test" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib" }
+      - tool_name: list_directory
+        action: { dir_path: "Modules" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib/test" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib" }
+      - tool_name: list_directory
+        action: { dir_path: "Doc" }
       - tool_name: list_directory
         action: { dir_path: "Include" }
       - tool_name: list_directory
         action: { dir_path: "Lib/test" }
+      - tool_name: list_directory
+        action: { dir_path: "Lib" }
+      - tool_name: list_directory
+        action: { dir_path: "Modules" }
 
   # ── single-tool: task_tracker (UNSAFE) ─────────────────────────────
 
