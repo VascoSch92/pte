@@ -197,7 +197,11 @@ class BenchmarkExecutor:
         tracker.enter()
         start = time.perf_counter()
         try:
-            observation: Observation = tool(ae.action)
+            # Pass the parent conversation for tools that need it (e.g. task).
+            from pte.runner import _task_conversation
+
+            conversation = _task_conversation if ae.tool_name == "task" else None
+            observation: Observation = tool(ae.action, conversation)
         except Exception as exc:
             end = time.perf_counter()
             tracker.exit()

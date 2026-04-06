@@ -49,7 +49,9 @@ def _install_sdk_deps(sdk_dir: Path) -> None:
         text=True,
     )
     if result.returncode != 0:
-        console.print(f"[red]Failed to install SDK dependencies:[/red]\n{result.stderr}")
+        console.print(
+            f"[red]Failed to install SDK dependencies:[/red]\n{result.stderr}"
+        )
         sys.exit(1)
 
 

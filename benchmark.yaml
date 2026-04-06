@@ -1206,6 +1206,30 @@ chains:
         action: { command: "cat Lib/asyncio/queues.py" }
       - tool_name: terminal_tmux
         action: { command: "cat Lib/asyncio/runners.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/selector_events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/proactor_events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/unix_events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/asyncio/windows_events.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/typing.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/dataclasses.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/inspect.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/argparse.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/subprocess.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/functools.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/pathlib/__init__.py" }
+      - tool_name: terminal_tmux
+        action: { command: "cat Lib/logging/__init__.py" }
 
   # Stress 2: grep different patterns in different dirs — I/O + output heavy
   - name: stress-tmux-grep-flood
@@ -1226,6 +1250,30 @@ chains:
         action: { command: "grep -rn 'PyDict' Objects/ | head -200" }
       - tool_name: terminal_tmux
         action: { command: "grep -rn 'import sys' Lib/email/" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'Py_INCREF' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'static PyObject' Python/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'def __init__' Lib/collections/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'return NULL' Modules/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyTuple' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'raise ValueError' Lib/json/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyList' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'self\\.' Lib/unittest/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyLong' Objects/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'async def' Lib/asyncio/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'struct ' Include/ | head -200" }
+      - tool_name: terminal_tmux
+        action: { command: "grep -rn 'PyType' Objects/ | head -200" }
 
   # Stress 3: seq flood — 5000 lines each, distinct ranges, pure output pressure
   - name: stress-tmux-seq-flood
@@ -1246,6 +1294,30 @@ chains:
         action: { command: "seq 30001 35000" }
       - tool_name: terminal_tmux
         action: { command: "seq 35001 40000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 40001 45000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 45001 50000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 50001 55000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 55001 60000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 60001 65000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 65001 70000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 70001 75000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 75001 80000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 80001 85000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 85001 90000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 90001 95000" }
+      - tool_name: terminal_tmux
+        action: { command: "seq 95001 100000" }
 
   # ── speed-tmux: latency and scaling benchmarks ───────────────────
 
@@ -1289,6 +1361,51 @@ chains:
         action: { command: "git log --oneline --graph -30" }
       - tool_name: terminal_tmux
         action: { command: "git show --stat HEAD" }
+
+  # ── single-tool: task (mock subagents with 5s delay each) ──────────
+
+  - name: tool-task-mock
+    calls:
+      - tool_name: task
+        action: { prompt: "Analyze module alpha", subagent_type: "default", description: "analyze alpha" }
+      - tool_name: task
+        action: { prompt: "Analyze module bravo", subagent_type: "default", description: "analyze bravo" }
+      - tool_name: task
+        action: { prompt: "Analyze module charlie", subagent_type: "default", description: "analyze charlie" }
+      - tool_name: task
+        action: { prompt: "Analyze module delta", subagent_type: "default", description: "analyze delta" }
+      - tool_name: task
+        action: { prompt: "Analyze module echo", subagent_type: "default", description: "analyze echo" }
+      - tool_name: task
+        action: { prompt: "Analyze module foxtrot", subagent_type: "default", description: "analyze foxtrot" }
+      - tool_name: task
+        action: { prompt: "Analyze module golf", subagent_type: "default", description: "analyze golf" }
+      - tool_name: task
+        action: { prompt: "Analyze module hotel", subagent_type: "default", description: "analyze hotel" }
+      - tool_name: task
+        action: { prompt: "Analyze module india", subagent_type: "default", description: "analyze india" }
+      - tool_name: task
+        action: { prompt: "Analyze module juliet", subagent_type: "default", description: "analyze juliet" }
+      - tool_name: task
+        action: { prompt: "Analyze module kilo", subagent_type: "default", description: "analyze kilo" }
+      - tool_name: task
+        action: { prompt: "Analyze module lima", subagent_type: "default", description: "analyze lima" }
+      - tool_name: task
+        action: { prompt: "Analyze module mike", subagent_type: "default", description: "analyze mike" }
+      - tool_name: task
+        action: { prompt: "Analyze module november", subagent_type: "default", description: "analyze november" }
+      - tool_name: task
+        action: { prompt: "Analyze module oscar", subagent_type: "default", description: "analyze oscar" }
+      - tool_name: task
+        action: { prompt: "Analyze module papa", subagent_type: "default", description: "analyze papa" }
+      - tool_name: task
+        action: { prompt: "Analyze module quebec", subagent_type: "default", description: "analyze quebec" }
+      - tool_name: task
+        action: { prompt: "Analyze module romeo", subagent_type: "default", description: "analyze romeo" }
+      - tool_name: task
+        action: { prompt: "Analyze module sierra", subagent_type: "default", description: "analyze sierra" }
+      - tool_name: task
+        action: { prompt: "Analyze module tango", subagent_type: "default", description: "analyze tango" }
 
   # ── impl-p3: browser multi-context (SKIPPED — SDK bug) ────────────
 

@@ -95,6 +95,7 @@ class ToolName(StrEnum):
     GREP = "grep"
     APPLY_PATCH = "apply_patch"
     TASK_TRACKER = "task_tracker"
+    TASK = "task"
     READ_FILE = "read_file"
     WRITE_FILE = "write_file"
     EDIT = "edit"
@@ -160,7 +161,98 @@ def _find_class(module: Any, suffix: str) -> type:
     return candidates[0][1]
 
 
+_task_conversation = None  # parent conversation for the task tool
+
+
+def _create_task_tool(working_dir: str, delay: float = 0.1) -> Any:
+    """Create a task tool backed by the real TaskManager / TaskExecutor stack.
+
+    The only mock is the LLM: each subagent uses a ``TestLLM`` that sleeps
+    for *delay* seconds before returning, so we exercise the full
+    TaskManager → LocalConversation → Agent pipeline while controlling
+    wall-clock cost.
+    """
+    global _task_conversation
+
+    from openhands.sdk import Agent, LocalConversation
+    from openhands.sdk.llm import Message, TextContent
+    from openhands.sdk.subagent.registry import register_agent_if_absent
+    from openhands.sdk.testing import TestLLM
+    from openhands.tools.task.definition import TaskTool
+    from openhands.tools.task.impl import TaskExecutor
+    from openhands.tools.task.manager import TaskManager
+
+    # ── delayed TestLLM ────────────────────────────────────────────
+    from pydantic import PrivateAttr
+
+    class DelayedTestLLM(TestLLM):
+        """TestLLM that sleeps before every completion call."""
+
+        _bench_delay: float = PrivateAttr(default=5.0)
+
+        def __init__(self, delay: float = 5.0, **kwargs):
+            kwargs.setdefault("model", "test-model")
+            super().__init__(**kwargs)
+            self._bench_delay = delay
+
+        def completion(self, messages, tools=None, **kwargs):
+            time.sleep(self._bench_delay)
+            return super().completion(messages, tools=tools, **kwargs)
+
+    # ── register a subagent type whose factory injects the delay ───
+    def _make_delayed_agent(llm):  # noqa: ARG001
+        """Factory: ignore the parent-copied LLM; use a fresh delayed one."""
+        sub_llm = DelayedTestLLM(
+            delay=delay,
+            scripted_responses=[
+                Message(
+                    role="assistant",
+                    content=[TextContent(text="Subagent work done.")],
+                ),
+            ],
+        )
+        return Agent(llm=sub_llm, tools=[])
+
+    register_agent_if_absent(
+        name="default",
+        factory_func=_make_delayed_agent,
+        description="Benchmark subagent with simulated delay",
+    )
+
+    # ── silence verbose subagent / SDK logs ───────────────────────
+    for name in (
+        "openhands.sdk",
+        "openhands.tools",
+        "openhands.sdk.conversation",
+        "openhands.sdk.agent",
+        "openhands.tools.task",
+    ):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+    # ── parent conversation (created once, reused across runs) ─────
+    parent_llm = TestLLM.from_messages([])  # never called directly
+    parent_agent = Agent(llm=parent_llm, tools=[])
+    _task_conversation = LocalConversation(
+        agent=parent_agent,
+        workspace=working_dir,
+        visualizer=None,
+        max_iteration_per_run=500,
+    )
+
+    # ── real TaskManager → TaskExecutor → TaskTool ─────────────────
+    manager = TaskManager()
+    manager._ensure_parent(_task_conversation)
+    executor = TaskExecutor(manager=manager)
+
+    return TaskTool.create(
+        executor=executor,
+        description="Benchmark task tool backed by real TaskManager",
+    )[0]
+
+
 def _create_tool(tool_name: str, working_dir: str) -> Any:
+    if tool_name == ToolName.TASK:
+        return _create_task_tool(working_dir)
     if tool_name.startswith("browser_"):
         return _create_browser_tool(tool_name, working_dir)
     if tool_name.startswith("mcp_"):
@@ -399,7 +491,7 @@ def _count_mismatches(baseline: list[str], current: list[str]) -> int:
 def run_benchmark(
     config: BenchmarkConfig,
 ) -> tuple[dict[int, dict[str, ChainRunResult]], dict[str, list[str]]]:
-    global _browser_executor, _mcp_client
+    global _browser_executor, _mcp_client, _task_conversation
     from pte.executor import BenchmarkExecutor
 
     working_dir = str(Path(config.working_dir).resolve())
@@ -521,6 +613,10 @@ def run_benchmark(
         with suppress(Exception):
             _mcp_client.sync_close()
         _mcp_client = None
+    if _task_conversation is not None:
+        with suppress(Exception):
+            _task_conversation.close()
+        _task_conversation = None
 
     console.print(
         f"\n[dim]Total benchmark time: {time.perf_counter() - bench_start:.1f}s[/dim]"
